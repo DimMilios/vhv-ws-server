@@ -1,0 +1,27 @@
+{
+  "compilerOptions": {
+    "sourceMap": true,
+    "skipLibCheck": true,
+    "outDir": "dist",
+    "strict": false,
+    "lib": ["esnext"],
+    "esModuleInterop": true,
+    "allowJs": true,
+    "target": "ES6",
+    "moduleResolution": "Node",
+    "module": "commonjs",
+    "typeRoots": ["./global.d.ts"],
+    "types": ["node"]
+  },
+  "include": [
+    "src/**/*.ts",
+    "src/views/*.pug",
+    "tests/**/*.ts",
+    "global.d.ts",
+    "src/db-connection.js"
+  ],
+  "exclude": ["node_modules", "src/config/websocket/**.js"],
+  "ts-node": {
+    "files": true
+  }
+}

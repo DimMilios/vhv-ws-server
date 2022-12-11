@@ -1,0 +1,47 @@
+{
+  "name": "verovio-rest-api",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "NODE_ENV=production YPERSISTENCE=mysql node dist/index.js",
+    "build": "tsc",
+    "dev": "nodemon src/index.ts",
+    "dev-db": "NODE_ENV=development YPERSISTENCE=mysql nodemon src/index.ts",
+    "ts-node": "ts-node src/index.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "bcrypt": "^5.0.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.0.0",
+    "express": "^4.17.2",
+    "express-async-handler": "^1.2.0",
+    "express-session": "^1.17.2",
+    "express-validator": "^6.14.0",
+    "formidable": "^2.0.1",
+    "js-base64": "^3.7.2",
+    "mysql": "^2.18.1",
+    "passport": "^0.6.0",
+    "passport-local": "^1.0.0",
+    "ts-node": "^10.8.1",
+    "y-websocket": "^1.3.18",
+    "yjs": "^13.5.23"
+  },
+  "devDependencies": {
+    "@types/bcrypt": "^5.0.0",
+    "@types/cors": "^2.8.12",
+    "@types/express": "^4.17.13",
+    "@types/express-session": "^1.17.4",
+    "@types/formidable": "^2.0.4",
+    "@types/mysql": "^2.15.21",
+    "@types/node": "^17.0.8",
+    "@types/passport": "^1.0.7",
+    "@types/passport-local": "^1.0.34",
+    "@types/ws": "^8.2.2",
+    "nodemon": "^2.0.15",
+    "typescript": "^4.5.4"
+  }
+}
