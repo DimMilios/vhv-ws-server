@@ -8,7 +8,7 @@ router.get(
   expressAsyncHandler(async (req: express.Request, res: any) => {
     const fileName = req.query.fileName;
     const username = req.query.username;
-    console.log({ fileName, username });
+    console.log({ fileName, username, query: req.query });
 
     if (!fileName || !username) {
       return res.status(400).json({ error: 'Missing required parameters ' });

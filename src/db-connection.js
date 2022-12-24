@@ -2,7 +2,7 @@ import mysql from 'mysql';
 import util from 'util';
 
 function makeDb(config) {
-  const connection = mysql.createPool(config);
+  const connection = mysql.createConnection(config);
 
   connection.on('enqueue', sequence => {
     if ('Query' === sequence.constructor.name) {
