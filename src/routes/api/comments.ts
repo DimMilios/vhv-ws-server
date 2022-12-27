@@ -8,14 +8,15 @@ router.get('/', async (_req, res) => {
 });
 
 router.post('/', async (req: any, res) => {
-  const {
-    content,
-    parentCommentId,
-    clientId,
-    documentId,
-    multiSelectElements,
-  } = req.body;
-  const userId = req.user.id;
+  // const {
+  //   content,
+  //   parentCommentId,
+  //   clientId,
+  //   documentId,
+  //   multiSelectElements,
+  // } = req.body;
+  // const userId = req.user.id;
+  console.log(req.body);
 
   try {
   } catch (error) {

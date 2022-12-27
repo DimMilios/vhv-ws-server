@@ -18,13 +18,10 @@ const server = app.listen(PORT, () => {
 });
 */
 
-
-
 import express from 'express';
 import https from 'https';
+import http from 'http';
 import fs from 'fs';
-const privateKey = fs.readFileSync('musicolab.hmu.gr.key');
-const certificate = fs.readFileSync('musicolab.hmu.gr.crt');
 
 import type { ErrorRequestHandler } from 'express';
 import cors from 'cors';
@@ -36,11 +33,10 @@ import { router as userRouter } from './routes/api/users';
 
 import CustomError from './util/error';
 
-
 export const app = express();
 
 // app.use(cors({ origin: 'http://localhost:3000', credentials: true }));
-app.use(cors({ origin: '*', credentials: true }));
+app.use(cors({ origin: '*' }));
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -84,35 +80,46 @@ let errorHandler: ErrorRequestHandler = (error, req, res, next) => {
 };
 app.use(errorHandler);
 
+let server: https.Server | http.Server;
 
+let keyPath = 'musicolab.hmu.gr.key';
+let certPath = 'musicolab.hmu.gr.crt';
 
-const server = https.createServer({
-	key: privateKey,
-	cert: certificate,
-}, app);
+if (fs.existsSync(keyPath) && fs.existsSync(certPath)) {
+  const privateKey = fs.readFileSync(keyPath);
+  const certificate = fs.readFileSync(certPath);
 
-server.on('connection', e => {
-	console.log(`Connection event: ${e}`);
-});
+  server = https.createServer(
+    {
+      key: privateKey,
+      cert: certificate,
+    },
+    app
+  );
 
-server.on('secureConnection', e => {
-	console.log(`Secure Connection event: ${e}`);
-});
+  server.on('connection', e => {
+    console.log(`Connection event: ${e}`);
+  });
 
+  server.on('secureConnection', e => {
+    console.log(`Secure Connection event: ${e}`);
+  });
 
-server.on('tlsClientError', e => {
-	console.log(`TLS Client Error event: ${e}`);
-});
+  server.on('tlsClientError', e => {
+    console.log(`TLS Client Error event: ${e}`);
+  });
+} else {
+  server = http.createServer(app);
+}
 
 const wss = new Server({ noServer: true });
 wss.on('connection', setupWSConnection());
 
 server.on('upgrade', (request: any, socket, head) => {
-	console.log(`[${new Date().toISOString()}]: Received upgrade request`);
+  console.log(`[${new Date().toISOString()}]: Received upgrade request`);
   wss.handleUpgrade(request, socket, head, ws => {
     wss.emit('connection', ws, request);
   });
 });
-
 
 server.listen(PORT, () => `Server running at localhost:${PORT}`);

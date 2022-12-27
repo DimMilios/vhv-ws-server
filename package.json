@@ -9,7 +9,7 @@
     "restart-forever": "NODE_ENV=production YPERSISTENCE=mysql forever restart dist/index.js",
     "stop-forever": "NODE_ENV=production YPERSISTENCE=mysql forever stop dist/index.js",
     "build": "tsc",
-    "dev": "nodemon src/server.ts",
+    "dev": "NODE_ENV=development nodemon src/server.ts",
     "dev-db": "NODE_ENV=development YPERSISTENCE=mysql nodemon src/server.ts",
     "ts-node": "ts-node src/index.ts"
   },
