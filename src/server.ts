@@ -30,6 +30,7 @@ import { router as indexRouter } from './routes';
 import { router as commentsRouter } from './routes/api/comments';
 import { router as documentsRouter } from './routes/api/documents';
 import { router as userRouter } from './routes/api/users';
+import { router as actionsRouter } from './routes/api/actions';
 
 import CustomError from './util/error';
 
@@ -52,6 +53,7 @@ app.use('/', indexRouter);
 app.use('/api/users', userRouter);
 app.use('/api/comments', commentsRouter);
 app.use('/api/documents', documentsRouter);
+app.use('/api/actions', actionsRouter);
 
 app.get('/not-found', (req, res) => {
   return res.render('error', {
