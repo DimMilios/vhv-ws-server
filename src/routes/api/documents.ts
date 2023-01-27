@@ -1,6 +1,6 @@
 import express from 'express';
 import expressAsyncHandler from 'express-async-handler';
-import { getDbConnection } from '../../db-connection.js';
+import { db } from '../../db-connection';
 export const router = express.Router();
 
 router.get(
@@ -19,8 +19,10 @@ router.get(
       usersForCurrentDocument: null,
     };
 
-    const db = getDbConnection();
-    const documents = await db.query(
+    // TODO: Add types
+    const db2: any = db;
+
+    const documents = await db2.query(
       `
       SELECT d.id as document_id, du.user_id, u.lastname, u.username
       FROM documents d
@@ -34,7 +36,7 @@ router.get(
     results.documents = documents;
 
     if (documents?.length > 0 && documents[0]?.document_id) {
-      const usersForCurrentDocument = await db.query(
+      const usersForCurrentDocument = await db2.query(
         `SELECT u.id, u.username, u.firstname, u.lastname
         FROM moodle.user u
         INNER JOIN documents_users du

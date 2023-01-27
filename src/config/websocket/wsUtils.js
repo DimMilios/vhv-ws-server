@@ -14,7 +14,7 @@ const { fromUint8Array, toUint8Array } = require('js-base64');
 const callbackHandler = require('./callback.js').callbackHandler;
 const isCallbackSet = require('./callback.js').isCallbackSet;
 const { URLSearchParams } = require('url');
-const { getDbConnection } = require('../../db-connection.js');
+const { getDb } = require('../../db-connection.ts');
 
 const CALLBACK_DEBOUNCE_WAIT =
   parseInt(process.env.CALLBACK_DEBOUNCE_WAIT) || 2000;
@@ -46,6 +46,9 @@ if (typeof persistenceDir === 'string') {
       let docId = Number(params.get('docId'));
       let title = params.get('fileName');
 
+      const db = getDb();
+      await db.execute('SELECT 1');
+
       if (!docId || !title) {
         console.error(
           'Missing required data to load document data from database'
@@ -53,7 +56,7 @@ if (typeof persistenceDir === 'string') {
         return;
       }
 
-      const results = await getDbConnection().query(
+      const results = await db.query(
         `
         SELECT d.y_doc_state
         FROM documents d
@@ -83,7 +86,7 @@ if (typeof persistenceDir === 'string') {
 
       const state = fromUint8Array(Y.encodeStateAsUpdate(ydoc));
 
-      const results = await getDbConnection().query(
+      const results = await db.query(
         `
         INSERT INTO documents (id, title, y_doc_state)
         VALUES (?, ?, ?)

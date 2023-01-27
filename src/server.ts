@@ -10,8 +10,13 @@ dotenv.config({
 console.log('Process config', process.env.DB_HOST, process.env.DB_DATABASE);
 import { Server } from 'ws';
 import { setupWSConnection } from './config/websocket/wsUtils';
+import { initDB } from './db-connection';
 
 const PORT = process.env.PORT ?? 8080;
+
+if (process.env.YPERSISTENCE === 'mysql') {
+  initDB();
+}
 /*
 const server = app.listen(PORT, () => {
   console.log(`App listening at http://localhost:${PORT}`);
