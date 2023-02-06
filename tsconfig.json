@@ -13,13 +13,7 @@
     "typeRoots": ["./global.d.ts"],
     "types": ["node"]
   },
-  "include": [
-    "src/**/*.ts",
-    "src/views/*.pug",
-    "tests/**/*.ts",
-    "global.d.ts",
-    "src/db-connection.js"
-  ],
+  "include": ["src/**/*.ts", "src/views/*.pug", "tests/**/*.ts", "global.d.ts"],
   "exclude": ["node_modules", "src/config/websocket/**.js"],
   "ts-node": {
     "files": true

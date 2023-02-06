@@ -10,12 +10,12 @@ dotenv.config({
 console.log('Process config', process.env.DB_HOST, process.env.DB_DATABASE);
 import { Server } from 'ws';
 import { setupWSConnection } from './config/websocket/wsUtils';
-import { initDB } from './db-connection';
+import { db } from './db-connection';
 
 const PORT = process.env.PORT ?? 8080;
 
 if (process.env.YPERSISTENCE === 'mysql') {
-  initDB();
+  db();
 }
 /*
 const server = app.listen(PORT, () => {
@@ -27,7 +27,7 @@ import express from 'express';
 import https from 'https';
 import http from 'http';
 import fs from 'fs';
-
+import { logger } from './config/logger';
 import type { ErrorRequestHandler } from 'express';
 import cors from 'cors';
 
@@ -47,7 +47,9 @@ app.use(cors({ origin: '*' }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-app.get('/ping', async (_req, res) => {
+app.use(logger);
+
+app.get('/ping', (_req, res) => {
   return res.status(200).json({
     message: 'pong',
   });
@@ -123,7 +125,7 @@ const wss = new Server({ noServer: true });
 wss.on('connection', setupWSConnection());
 
 server.on('upgrade', (request: any, socket, head) => {
-  console.log(`[${new Date().toISOString()}]: Received upgrade request`);
+  logger.logger.info('Received HTTP upgrade request');
   wss.handleUpgrade(request, socket, head, ws => {
     wss.emit('connection', ws, request);
   });

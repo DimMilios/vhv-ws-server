@@ -1,9 +1,10 @@
 CREATE TABLE actions (
     id BIGINT AUTO_INCREMENT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    `type` ENUM('notes', 'score', 'chords', 'comments'),
+    `type` varchar(50),
     content JSON,
-    user_id BIGINT,
-    course_id BIGINT,
+    username VARCHAR(100),
+    filename VARCHAR(100),
+    course VARCHAR(100),
     PRIMARY KEY (id)
 );

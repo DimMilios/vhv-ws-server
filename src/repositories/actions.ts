@@ -1,17 +1,20 @@
 import { OkPacket, QueryError } from 'mysql2';
+import { logger } from '../config/logger';
 import { db } from '../db-connection';
 import { ActionType, isOkPacket, QueryResult } from '../types';
 
 async function create(
-  type: ActionType,
-  userId,
-  courseId,
-  content
+  type: ActionType = null,
+  username = null,
+  course = null,
+  filename = null,
+  content = null
 ): Promise<Pick<OkPacket, 'insertId' | 'affectedRows'> | never> {
   try {
-    const [results] = await db.query<QueryResult>(
-      `INSERT INTO actions (\`type\`, user_id, course_id, content) VALUES (?, ?, ?, ?)`,
-      [type, userId, courseId, content]
+    const { pool } = await db();
+    const [results] = await pool.query<QueryResult>(
+      `INSERT INTO actions (\`type\`, username, course, filename, content) VALUES (?, ?, ?, ?, ?)`,
+      [type, username, course, filename, content]
     );
     if (isOkPacket(results)) {
       return {
@@ -21,7 +24,7 @@ async function create(
     }
   } catch (err) {
     const mysqlErr = err as QueryError;
-    console.error(mysqlErr.message);
+    logger.logger.error(mysqlErr.message);
     throw err;
   }
 }

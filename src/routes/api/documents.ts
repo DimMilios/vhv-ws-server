@@ -6,6 +6,8 @@ export const router = express.Router();
 router.get(
   '/room-id',
   expressAsyncHandler(async (req: express.Request, res: any) => {
+    return res.status(501).end();
+
     const fileName = req.query.fileName;
     const username = req.query.username;
     console.log({ fileName, username, query: req.query });
@@ -20,7 +22,7 @@ router.get(
     };
 
     // TODO: Add types
-    const db2: any = db;
+    const { pool: db2 } = (await db()) as any;
 
     const documents = await db2.query(
       `
@@ -51,6 +53,38 @@ router.get(
     }
 
     return res.status(200).json(results);
+  })
+);
+
+router.post(
+  '/updates',
+  expressAsyncHandler(async (req: express.Request, res: any) => {
+    const filename = req.query.filename ?? 'bluesag.krn';
+    const username = req.query.username ?? 'milios';
+    const course = req.query.course ?? 'bluesag';
+    console.log({ filename, username, course });
+    console.log({ ace: JSON.stringify(req.body) });
+
+    const data = JSON.stringify({
+      ace: JSON.stringify(req.body.data.ace.content),
+      comments: JSON.stringify(req.body.data.comments.content),
+    });
+
+    const { pool: db2 } = (await db()) as any;
+
+    try {
+      const results = await db2.query(
+        `
+        INSERT INTO document_updates (filename, username, course, doc_update)
+        VALUES (?, ?, ?, ?)`,
+        [filename, username, course, req.body.data]
+      );
+
+      console.log({ results });
+      return res.status(200).json(results);
+    } catch (error) {
+      console.error(error);
+    }
   })
 );
 

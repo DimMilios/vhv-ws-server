@@ -17,8 +17,12 @@ export type QueryError = {
 };
 
 export enum ActionType {
-  notes = 'notes',
-  chords = 'chords',
-  score = 'score',
-  comments = 'comments',
+  change_pitch = 'change_pitch',
+  change_chord = 'change_chord',
+  add_comment = 'add_comment',
+  undo = 'undo',
+  transpose = 'transpose',
+  connect = 'connect',
+  disconnect = 'disconnect',
+  export = 'export',
 }

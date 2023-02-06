@@ -6,13 +6,14 @@ export const router = express.Router();
 router.post(
   '/',
   expressAsyncHandler(async (req, res: any) => {
-    const { type, userId, courseId, content } = req.body;
+    const { type, username, course, filename, content } = req.body;
 
     try {
       const results = await actionsRepository.create(
         type,
-        userId,
-        courseId,
+        username,
+        course,
+        filename,
         content
       );
       return res.status(201).json(results);

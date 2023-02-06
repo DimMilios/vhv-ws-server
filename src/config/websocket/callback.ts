@@ -1,21 +1,22 @@
-const http = require('http');
+import http from 'http';
+import { URL } from 'url';
+import { WSSharedDoc } from './wsUtils';
 
 const CALLBACK_URL = process.env.CALLBACK_URL
   ? new URL(process.env.CALLBACK_URL)
   : null;
-const CALLBACK_TIMEOUT = process.env.CALLBACK_TIMEOUT || 5000;
+const CALLBACK_TIMEOUT = Number(process.env.CALLBACK_TIMEOUT || 5000);
 const CALLBACK_OBJECTS = process.env.CALLBACK_OBJECTS
   ? JSON.parse(process.env.CALLBACK_OBJECTS)
   : {};
 
-exports.isCallbackSet = !!CALLBACK_URL;
+export const isCallbackSet = !!CALLBACK_URL;
 
-/**
- * @param {Uint8Array} update
- * @param {any} origin
- * @param {WSSharedDoc} doc
- */
-exports.callbackHandler = (update, origin, doc) => {
+export const callbackHandler = (
+  update: Uint8Array,
+  origin: any,
+  doc: WSSharedDoc
+) => {
   const room = doc.name;
   const dataToSend = {
     room: room,
@@ -37,7 +38,7 @@ exports.callbackHandler = (update, origin, doc) => {
  * @param {number} timeout
  * @param {Object} data
  */
-const callbackRequest = (url, timeout, data) => {
+const callbackRequest = (url: URL, timeout: number, data: any) => {
   data = JSON.stringify(data);
   const options = {
     hostname: url.hostname,
@@ -68,7 +69,7 @@ const callbackRequest = (url, timeout, data) => {
  * @param {string} objType
  * @param {WSSharedDoc} doc
  */
-const getContent = (objName, objType, doc) => {
+const getContent = (objName: string, objType: string, doc: WSSharedDoc) => {
   switch (objType) {
     case 'Array':
       return doc.getArray(objName);
@@ -79,6 +80,7 @@ const getContent = (objName, objType, doc) => {
     case 'XmlFragment':
       return doc.getXmlFragment(objName);
     case 'XmlElement':
+      // @ts-ignore
       return doc.getXmlElement(objName);
     default:
       return {};
