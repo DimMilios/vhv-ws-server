@@ -105,18 +105,6 @@ if (fs.existsSync(keyPath) && fs.existsSync(certPath)) {
     },
     app
   );
-
-  server.on('connection', e => {
-    console.log(`Connection event: ${e}`);
-  });
-
-  server.on('secureConnection', e => {
-    console.log(`Secure Connection event: ${e}`);
-  });
-
-  server.on('tlsClientError', e => {
-    console.log(`TLS Client Error event: ${e}`);
-  });
 } else {
   server = http.createServer(app);
 }
