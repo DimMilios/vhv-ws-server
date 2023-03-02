@@ -11,7 +11,7 @@ import debounce from 'lodash.debounce';
 
 import { fromUint8Array, toUint8Array } from 'js-base64';
 
-import actionsRepository from '../../repositories/actions';
+import * as actionsRepository from '../../repositories/actions';
 
 const callbackHandler = require('./callback').callbackHandler;
 const isCallbackSet = require('./callback').isCallbackSet;
