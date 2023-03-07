@@ -30,10 +30,6 @@ export async function create(
   }
 }
 
-function orTrue(property: any, sqlCond: string): string {
-  return property !== undefined && property !== null ? sqlCond : '1=1';
-}
-
 const SQL_COND_TRUE = '1=1';
 
 export async function findAll(
@@ -57,7 +53,8 @@ export async function findAll(
 
     // TODO: properly handle pagination when a `type` filter is passed
     let actionId = SQL_COND_TRUE;
-    if (type === SQL_COND_TRUE && lastActionId != null) {
+    // type === SQL_COND_TRUE &&
+    if (lastActionId != null) {
       actionId = 'a.id < ' + pool.escape(lastActionId);
     }
 
