@@ -116,6 +116,7 @@ export const docs: Map<string, WSSharedDoc> = new Map();
 const messageSync = 0;
 const messageAwareness = 1;
 // const messageAuth = 2
+const messageActionsReset = 100;
 
 /**
  * @param {Uint8Array} update
@@ -229,6 +230,12 @@ const messageListener = (
           decoding.readVarUint8Array(decoder),
           conn
         );
+        break;
+      }
+      case messageActionsReset: {
+        logger.logger.info('Received actions reset message');
+        // Broadcast a message to all peers so that they can refetch and populate their interaction history
+        doc.conns.forEach((_, conn) => send(doc, conn, message));
         break;
       }
     }
