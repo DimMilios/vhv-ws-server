@@ -312,6 +312,7 @@ export const setupWSConnection = () => {
 
     const searchParams = new URLSearchParams(req.url.slice(1).split('?')[1]);
     let connectId: number | undefined;
+
     actionsRepository
       .create(
         ActionType.connect,
@@ -325,6 +326,9 @@ export const setupWSConnection = () => {
       .then(res => {
         logger.logger.info(res);
         connectId = res.insertId;
+      })
+      .catch(err => {
+        logger.logger.error(err);
       });
 
     logger.logger.info(
@@ -370,7 +374,10 @@ export const setupWSConnection = () => {
           searchParams.get('file'),
           JSON.stringify({ connectId })
         )
-        .then(res => logger.logger.info(res));
+        .then(res => logger.logger.info(res))
+        .catch(err => {
+          logger.logger.error(err);
+        });
     });
     conn.on('pong', () => {
       pongReceived = true;
