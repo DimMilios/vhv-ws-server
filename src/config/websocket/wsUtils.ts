@@ -111,6 +111,7 @@ export const setPersistence = persistence_ => {
 export const getPersistence = () => persistence;
 
 export const docs: Map<string, WSSharedDoc> = new Map();
+export const docRemoval: Map<string, Date> = new Map();
 // exporting docs so that others can use it
 
 const messageSync = 0;
@@ -245,11 +246,11 @@ const messageListener = (
   }
 };
 
-/**
- * @param {WSSharedDoc} doc
- * @param {any} conn
- */
-const closeConn = (doc: WSSharedDoc, conn: any) => {
+let clearActionsTimeout: NodeJS.Timeout | undefined;
+const ACTIONS_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
+// const ACTIONS_TIMEOUT_MS = 10_000;
+
+const closeConn = (doc: WSSharedDoc, conn: WebSocket) => {
   if (doc.conns.has(conn)) {
     const controlledIds: Set<number> = doc.conns.get(conn);
     doc.conns.delete(conn);
@@ -259,14 +260,28 @@ const closeConn = (doc: WSSharedDoc, conn: any) => {
       null
     );
     if (doc.conns.size === 0 && persistence !== null) {
-      logger.logger.info(
-        'All connections are closed. Destroying Yjs document.'
-      );
+      logger.logger.info('All connections are closed. Destroying Yjs document.');
       // if persisted, we store state and destroy ydocument
       persistence?.writeState(doc.name, doc).then(() => {
         doc.destroy();
       });
       docs.delete(doc.name);
+      docRemoval.set(doc.name, new Date());
+    }
+
+    // Clear actions for this room after a timeout
+    if (doc.conns.size === 0) {
+        logger.logger.info(`Started actions delete timeout for room "${doc.name}`);
+        clearActionsTimeout = setTimeout(() => {
+            const params = new URLSearchParams(doc.name);
+            actionsRepository.removeBy(params.get('filename'), params.get('course'))
+            .then(res => {
+                logger.logger.info(res);
+            })
+            .catch(err => {
+                logger.logger.error(err);
+            });
+        }, ACTIONS_TIMEOUT_MS);
     }
   }
   conn.close();
@@ -305,31 +320,41 @@ export const setupWSConnection = () => {
       'Setting up a new WebSocket connection for room: ' + docName
     );
 
+
     conn.binaryType = 'arraybuffer';
     // get doc, initialize if it does not exist yet
     const doc = getYDoc(docName, gc);
     doc.conns.set(conn, new Set());
 
+    if (docRemoval.has(docName) && (new Date().getTime() - docRemoval.get(docName).getTime()) < ACTIONS_TIMEOUT_MS) {
+        logger.logger.info(`Cancelled actions removal for document of name "${docName}"`);
+        clearTimeout(clearActionsTimeout);
+    }
+
+    logger.logger.info(`ydocument name: ${doc.name}`);
     const searchParams = new URLSearchParams(req.url.slice(1).split('?')[1]);
     let connectId: number | undefined;
 
-    actionsRepository
-      .create(
-        ActionType.connect,
-        searchParams.get('username'),
-        searchParams.get('course') === 'null'
-          ? null
-          : searchParams.get('course'),
-        searchParams.get('file'),
-        null
-      )
-      .then(res => {
-        logger.logger.info(res);
-        connectId = res.insertId;
-      })
-      .catch(err => {
-        logger.logger.error(err);
-      });
+    // Store actions only for VHV app
+    if (searchParams.has('pathname') && searchParams.get('pathname').toLowerCase().includes('vhv')) {
+        actionsRepository
+        .create(
+            ActionType.connect,
+            searchParams.get('username'),
+            searchParams.get('course') === 'null'
+                ? null
+                : searchParams.get('course'),
+                searchParams.get('file'),
+                null
+        )
+        .then(res => {
+            logger.logger.info(res);
+            connectId = res.insertId;
+        })
+        .catch(err => {
+            logger.logger.error(err);
+        });
+    }
 
     logger.logger.info(
       `${doc.conns.size} active connections on doc: ${doc.guid}`
@@ -358,26 +383,29 @@ export const setupWSConnection = () => {
       }
     }, pingTimeout);
     conn.on('close', () => {
-      closeConn(doc, conn);
-      clearInterval(pingInterval);
-      logger.logger.info(
-        `A connection was closed, number for active connections: ${doc.conns.size}`
-      );
+        closeConn(doc, conn);
+        clearInterval(pingInterval);
+        logger.logger.info(
+          `A connection was closed, number for active connections: ${doc.conns.size}`
+        );
 
-      actionsRepository
-        .create(
-          ActionType.disconnect,
-          searchParams.get('username'),
-          searchParams.get('course') === 'null'
-            ? null
-            : searchParams.get('course'),
-          searchParams.get('file'),
-          JSON.stringify({ connectId })
-        )
-        .then(res => logger.logger.info(res))
-        .catch(err => {
-          logger.logger.error(err);
-        });
+        // Store actions only for VHV app
+        if (searchParams.has('pathname') && searchParams.get('pathname').toLowerCase().includes('vhv')) {
+          actionsRepository
+            .create(
+              ActionType.disconnect,
+              searchParams.get('username'),
+              searchParams.get('course') === 'null'
+                ? null
+                : searchParams.get('course'),
+              searchParams.get('file'),
+              JSON.stringify({ connectId })
+            )
+            .then(res => logger.logger.info(res))
+            .catch(err => {
+              logger.logger.error(err);
+            });
+        }
     });
     conn.on('pong', () => {
       pongReceived = true;

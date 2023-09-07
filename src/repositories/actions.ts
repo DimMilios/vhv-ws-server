@@ -61,7 +61,26 @@ export async function findAll(
     let [results] = await pool.query<IAction[] & QueryResult>(
       `SELECT a.* FROM actions a WHERE a.filename = ${pool.escape(filename)}
       AND ${courseParam} AND ${type} AND ${actionId}
+      AND DATEDIFF(NOW(), a.created_at) < 1
       ORDER BY a.created_at DESC LIMIT ${pool.escape(size) || 50}`
+    );
+    return results;
+  } catch (err) {
+    const mysqlErr = err as QueryError;
+    logger.logger.error(mysqlErr.message);
+    throw err;
+  }
+}
+
+export async function removeBy(filename: string, course?: string) {
+  try {
+    logger.logger.info('actionsRepository.removeBy', { filename, course });
+    const { pool } = await db();
+
+    const courseParam = course !== undefined ? 'a.course=' + pool.escape(course) : SQL_COND_TRUE;
+
+    let [results] = await pool.query<IAction[] & QueryResult>(
+        `DELETE FROM actions a WHERE a.filename = ${pool.escape(filename)} AND ${courseParam}`
     );
     return results;
   } catch (err) {
