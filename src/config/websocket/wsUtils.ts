@@ -248,7 +248,11 @@ const messageListener = (
 
 let clearActionsTimeout: NodeJS.Timeout | undefined;
 const ACTIONS_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
-// const ACTIONS_TIMEOUT_MS = 10_000;
+
+// We're temporarily keeping the Yjs document for the amount of time specified.
+// If a user joins on the same room before the timeout is over then the timeout is cancelled.
+let docRemoveTimeout: NodeJS.Timeout | undefined;
+const DOC_REMOVE_TIMEOUT_MS = 15 * 60 * 1000; // 15 minutes
 
 const closeConn = (doc: WSSharedDoc, conn: WebSocket) => {
   if (doc.conns.has(conn)) {
@@ -261,16 +265,19 @@ const closeConn = (doc: WSSharedDoc, conn: WebSocket) => {
     );
     if (doc.conns.size === 0 && persistence !== null) {
       logger.logger.info('All connections are closed. Destroying Yjs document.');
-      // if persisted, we store state and destroy ydocument
-      persistence?.writeState(doc.name, doc).then(() => {
-        doc.destroy();
-      });
-      docs.delete(doc.name);
       docRemoval.set(doc.name, new Date());
+      docRemoveTimeout = setTimeout(() => {
+          logger.logger.info('Document removal timeout has passed. Deleting the Yjs document.');
+          // if persisted, we store state and destroy ydocument
+          persistence?.writeState(doc.name, doc).then(() => {
+              doc.destroy();
+          });
+          docs.delete(doc.name);
+      }, DOC_REMOVE_TIMEOUT_MS);
     }
 
     // Clear actions for this room after a timeout
-    if (doc.conns.size === 0) {
+    if (doc.conns.size === 0 && searchParams?.get('pathname')?.toLowerCase().includes('vhv')) {
         logger.logger.info(`Started actions delete timeout for room "${doc.name}`);
         clearActionsTimeout = setTimeout(() => {
             const params = new URLSearchParams(doc.name);
@@ -304,22 +311,15 @@ const send = (doc: WSSharedDoc, conn: WebSocket, m: Uint8Array) => {
 };
 
 const pingTimeout = 30000;
+let searchParams: URLSearchParams | undefined;
 
-/**
- * @param {any} conn
- * @param {any} req
- * @param {any} opts
- */
 export const setupWSConnection = () => {
   return (
     conn: WebSocket,
     req: { url: string },
     { docName = req.url.slice(1).split('?')[0], gc = true } = {}
   ) => {
-    logger.logger.info(
-      'Setting up a new WebSocket connection for room: ' + docName
-    );
-
+    logger.logger.info('Setting up a new WebSocket connection for room: ' + docName);
 
     conn.binaryType = 'arraybuffer';
     // get doc, initialize if it does not exist yet
@@ -331,8 +331,12 @@ export const setupWSConnection = () => {
         clearTimeout(clearActionsTimeout);
     }
 
-    logger.logger.info(`ydocument name: ${doc.name}`);
-    const searchParams = new URLSearchParams(req.url.slice(1).split('?')[1]);
+    if (docRemoval.has(docName) && (new Date().getTime() - docRemoval.get(docName).getTime()) < DOC_REMOVE_TIMEOUT_MS) {
+        logger.logger.info(`Cancelled document removal for document of name "${docName}"`);
+        clearTimeout(docRemoveTimeout);
+    }
+
+    searchParams = new URLSearchParams(req.url.slice(1).split('?')[1]);
     let connectId: number | undefined;
 
     // Store actions only for VHV app
@@ -341,11 +345,9 @@ export const setupWSConnection = () => {
         .create(
             ActionType.connect,
             searchParams.get('username'),
-            searchParams.get('course') === 'null'
-                ? null
-                : searchParams.get('course'),
-                searchParams.get('file'),
-                null
+            searchParams.get('course') === 'null' ? null : searchParams.get('course'),
+            searchParams.get('file'),
+            null
         )
         .then(res => {
             logger.logger.info(res);
@@ -395,9 +397,7 @@ export const setupWSConnection = () => {
             .create(
               ActionType.disconnect,
               searchParams.get('username'),
-              searchParams.get('course') === 'null'
-                ? null
-                : searchParams.get('course'),
+              searchParams.get('course') === 'null' ? null : searchParams.get('course'),
               searchParams.get('file'),
               JSON.stringify({ connectId })
             )
