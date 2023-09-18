@@ -61,7 +61,6 @@ export async function findAll(
     let [results] = await pool.query<IAction[] & QueryResult>(
       `SELECT a.* FROM actions a WHERE a.filename = ${pool.escape(filename)}
       AND ${courseParam} AND ${type} AND ${actionId}
-      AND DATEDIFF(NOW(), a.created_at) < 1
       ORDER BY a.created_at DESC LIMIT ${pool.escape(size) || 50}`
     );
     return results;

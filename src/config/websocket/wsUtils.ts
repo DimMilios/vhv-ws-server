@@ -140,6 +140,7 @@ export class WSSharedDoc extends Y.Doc {
    */
   conns: Map<WebSocket, Set<number>>;
   awareness: awarenessProtocol.Awareness;
+  searchParams?: URLSearchParams;
 
   constructor(name: string) {
     super({ gc: gcEnabled });
@@ -188,6 +189,11 @@ export class WSSharedDoc extends Y.Doc {
       );
     }
   }
+
+    isApp(app: string): boolean {
+        if (!this.searchParams) return false;
+        return this.searchParams.has('pathname') && this.searchParams.get('pathname').toLowerCase().includes(app); 
+    }
 }
 
 /**
@@ -246,9 +252,6 @@ const messageListener = (
   }
 };
 
-let clearActionsTimeout: NodeJS.Timeout | undefined;
-const ACTIONS_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
-
 // We're temporarily keeping the Yjs document for the amount of time specified.
 // If a user joins on the same room before the timeout is over then the timeout is cancelled.
 let docRemoveTimeout: NodeJS.Timeout | undefined;
@@ -258,37 +261,28 @@ const closeConn = (doc: WSSharedDoc, conn: WebSocket) => {
   if (doc.conns.has(conn)) {
     const controlledIds: Set<number> = doc.conns.get(conn);
     doc.conns.delete(conn);
-    awarenessProtocol.removeAwarenessStates(
-      doc.awareness,
-      Array.from(controlledIds),
-      null
-    );
+    awarenessProtocol.removeAwarenessStates(doc.awareness, Array.from(controlledIds), null);
+
     if (doc.conns.size === 0 && persistence !== null) {
       logger.logger.info('All connections are closed. Destroying Yjs document.');
-      docRemoval.set(doc.name, new Date());
-      docRemoveTimeout = setTimeout(() => {
-          logger.logger.info('Document removal timeout has passed. Deleting the Yjs document.');
-          // if persisted, we store state and destroy ydocument
+      if (doc.isApp('playalong')) {
+          logger.logger.info(`Destroying Playalong app document: ${doc.name}`);
+          docRemoval.set(doc.name, new Date());
+          docRemoveTimeout = setTimeout(() => {
+              logger.logger.info('Document removal timeout has passed. Deleting the Yjs document.');
+              // if persisted, we store state and destroy ydocument
+              persistence?.writeState(doc.name, doc).then(() => {
+                  doc.destroy();
+              });
+              docs.delete(doc.name);
+          }, DOC_REMOVE_TIMEOUT_MS);
+      } else {
+          logger.logger.info(`Destroying VHV app document: ${doc.name}`);
           persistence?.writeState(doc.name, doc).then(() => {
               doc.destroy();
           });
           docs.delete(doc.name);
-      }, DOC_REMOVE_TIMEOUT_MS);
-    }
-
-    // Clear actions for this room after a timeout
-    if (doc.conns.size === 0 && searchParams?.get('pathname')?.toLowerCase().includes('vhv')) {
-        logger.logger.info(`Started actions delete timeout for room "${doc.name}`);
-        clearActionsTimeout = setTimeout(() => {
-            const params = new URLSearchParams(doc.name);
-            actionsRepository.removeBy(params.get('filename'), params.get('course'))
-            .then(res => {
-                logger.logger.info(res);
-            })
-            .catch(err => {
-                logger.logger.error(err);
-            });
-        }, ACTIONS_TIMEOUT_MS);
+      }
     }
   }
   conn.close();
@@ -311,7 +305,6 @@ const send = (doc: WSSharedDoc, conn: WebSocket, m: Uint8Array) => {
 };
 
 const pingTimeout = 30000;
-let searchParams: URLSearchParams | undefined;
 
 export const setupWSConnection = () => {
   return (
@@ -325,28 +318,23 @@ export const setupWSConnection = () => {
     // get doc, initialize if it does not exist yet
     const doc = getYDoc(docName, gc);
     doc.conns.set(conn, new Set());
+    doc.searchParams = new URLSearchParams(req.url.slice(1).split('?')[1]);
 
-    if (docRemoval.has(docName) && (new Date().getTime() - docRemoval.get(docName).getTime()) < ACTIONS_TIMEOUT_MS) {
-        logger.logger.info(`Cancelled actions removal for document of name "${docName}"`);
-        clearTimeout(clearActionsTimeout);
-    }
+    let connectId: number | undefined;
 
-    if (docRemoval.has(docName) && (new Date().getTime() - docRemoval.get(docName).getTime()) < DOC_REMOVE_TIMEOUT_MS) {
+    if (docRemoval.has(docName) && doc.isApp('playalong') && (new Date().getTime() - docRemoval.get(docName).getTime()) < DOC_REMOVE_TIMEOUT_MS) {
         logger.logger.info(`Cancelled document removal for document of name "${docName}"`);
         clearTimeout(docRemoveTimeout);
     }
 
-    searchParams = new URLSearchParams(req.url.slice(1).split('?')[1]);
-    let connectId: number | undefined;
-
     // Store actions only for VHV app
-    if (searchParams.has('pathname') && searchParams.get('pathname').toLowerCase().includes('vhv')) {
+    if (doc.isApp('vhv')) {
         actionsRepository
         .create(
             ActionType.connect,
-            searchParams.get('username'),
-            searchParams.get('course') === 'null' ? null : searchParams.get('course'),
-            searchParams.get('file'),
+            doc.searchParams.get('username'),
+            doc.searchParams.get('course') === 'null' ? null : doc.searchParams.get('course'),
+            doc.searchParams.get('file'),
             null
         )
         .then(res => {
@@ -392,13 +380,13 @@ export const setupWSConnection = () => {
         );
 
         // Store actions only for VHV app
-        if (searchParams.has('pathname') && searchParams.get('pathname').toLowerCase().includes('vhv')) {
+        if (doc.isApp('vhv')) {
           actionsRepository
             .create(
               ActionType.disconnect,
-              searchParams.get('username'),
-              searchParams.get('course') === 'null' ? null : searchParams.get('course'),
-              searchParams.get('file'),
+              doc.searchParams.get('username'),
+              doc.searchParams.get('course') === 'null' ? null : doc.searchParams.get('course'),
+              doc.searchParams.get('file'),
               JSON.stringify({ connectId })
             )
             .then(res => logger.logger.info(res))
