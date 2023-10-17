@@ -9,13 +9,14 @@ export async function create(
   username = null,
   course = null,
   filename = null,
-  content = null
+  content = null,
+  scoreTitle = null,
 ): Promise<Pick<OkPacket, 'insertId' | 'affectedRows'> | never> {
   try {
     const { pool } = await db();
     const [results] = await pool.query<QueryResult>(
-      `INSERT INTO actions (\`type\`, username, course, filename, content) VALUES (?, ?, ?, ?, ?)`,
-      [type, username, course, filename, content]
+      `INSERT INTO actions (\`type\`, username, course, filename, content, score_title) VALUES (?, ?, ?, ?, ?, ?)`,
+      [type, username, course, filename, content, scoreTitle]
     );
     if (isOkPacket(results)) {
       return {
@@ -71,16 +72,12 @@ export async function findAll(
   }
 }
 
-export async function removeBy(filename: string, course?: string) {
+export async function updateExtraById(actionId: number, extra: Record<string, unknown>) {
   try {
-    logger.logger.info('actionsRepository.removeBy', { filename, course });
+    logger.logger.info('actionsRepository.updateExtraById', { actionId });
     const { pool } = await db();
 
-    const courseParam = course !== undefined ? 'a.course=' + pool.escape(course) : SQL_COND_TRUE;
-
-    let [results] = await pool.query<IAction[] & QueryResult>(
-        `DELETE FROM actions a WHERE a.filename = ${pool.escape(filename)} AND ${courseParam}`
-    );
+    let [results] = await pool.execute(`UPDATE actions a SET a.extra = ? WHERE a.id = ?`, [extra, actionId])
     return results;
   } catch (err) {
     const mysqlErr = err as QueryError;

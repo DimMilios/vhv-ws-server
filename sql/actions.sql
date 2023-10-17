@@ -8,3 +8,5 @@ CREATE TABLE actions (
     course VARCHAR(100),
     PRIMARY KEY (id)
 );
+
+ALTER TABLE actions ADD COLUMN score_title VARCHAR(512);
