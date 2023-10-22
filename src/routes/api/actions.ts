@@ -7,7 +7,7 @@ export const router = express.Router();
 router.post(
   '/',
   expressAsyncHandler(async (req, res: any) => {
-    const { type, username, course, filename, content, scoreTitle } = req.body;
+    const { type, username, course, filename, content, scoreTitle, idsToDelete } = req.body;
 
     try {
       const results = await actionsRepository.create(
@@ -17,6 +17,7 @@ router.post(
         filename,
         content,
         scoreTitle,
+        idsToDelete
       );
       return res.status(201).json(results);
     } catch (err) {

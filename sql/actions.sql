@@ -10,3 +10,5 @@ CREATE TABLE actions (
 );
 
 ALTER TABLE actions ADD COLUMN score_title VARCHAR(512);
+
+ALTER TABLE actions ADD COLUMN deleted BOOLEAN DEFAULT FALSE;
