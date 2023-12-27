@@ -91,8 +91,8 @@ app.use(errorHandler);
 
 let server: https.Server | http.Server;
 
-let keyPath = 'musicolab.hmu.gr.key';
-let certPath = 'musicolab.hmu.gr.crt';
+let keyPath = '/etc/ssl/musicolab.hmu.gr.key';
+let certPath = '/etc/ssl/musicolab.hmu.gr.crt';
 
 if (fs.existsSync(keyPath) && fs.existsSync(certPath)) {
   const privateKey = fs.readFileSync(keyPath);
